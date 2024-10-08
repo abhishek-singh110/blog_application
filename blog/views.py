@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -70,40 +71,37 @@ def login_view(request):
 # this is showing the blog list and details of the blogs.
 @login_required
 def home(request):
-    tag_search = request.GET.get('tag_search', '')  # Get the search input from the URL
-    search_query = request.GET.get('search')
-    blog_id = request.GET.get('blog_id') 
+    search_query = request.GET.get('search', '')
+    tag_search = request.GET.get('tag_search', '')
+    blog_id = request.GET.get('blog_id')
+    
+    blogs = Blog.objects.all().order_by('-created_at')
     
     if search_query:
-        # Perform full-text search on title and content fields
-        blogs = Blog.objects.annotate(
-            search=SearchVector('title', 'content')
-        ).filter(search=search_query).distinct()
-    elif tag_search:
-        blogs = Blog.objects.filter(tags__name__icontains=tag_search).distinct()
-    else:
-        blogs = Blog.objects.all()  
-
-    paginator = Paginator(blogs, 3)  # Paginate the blog list
+        blogs = blogs.filter(
+            Q(title__icontains=search_query) | 
+            Q(content__icontains=search_query)
+        )
+    
+    if tag_search:
+        blogs = blogs.filter(tags__name__icontains=tag_search)
+    
+    paginator = Paginator(blogs, 10)  # Show 10 blogs per page
     page_number = request.GET.get('page')
     blogs = paginator.get_page(page_number)
-
-    # Retrieve the full list of blogs for the sidebar
-    all_blogs = Blog.objects.all()  
-
-    tags = Tag.objects.all()
-
+    
     selected_blog = None
     if blog_id:
-        selected_blog = get_object_or_404(Blog, id=blog_id)
-
-    return render(request, 'blog.html', {
-        'blogs': blogs,  # This is for the current page of blogs
-        'all_blogs': all_blogs,  # This is for the sidebar list
-        'tags': tags,
-        'tag_search': tag_search,
+        selected_blog = Blog.objects.get(id=blog_id)
+    
+    context = {
+        'blogs': blogs,
         'selected_blog': selected_blog,
-    })
+        'search_query': search_query,
+        'tag_search': tag_search,
+    }
+    
+    return render(request, 'blog.html', context)
 
 # this is for adding the comments on the blogs.
 @login_required
@@ -154,3 +152,52 @@ def share_blog(request, blog_id):
 def user_logout(request):
     logout(request)  # Log the user out
     return redirect('signup')  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def home(request):
+#     tag_search = request.GET.get('tag_search', '')  # Get the search input from the URL
+#     search_query = request.GET.get('search')
+#     blog_id = request.GET.get('blog_id') 
+    
+#     if search_query:
+#         # Perform full-text search on title and content fields
+#         blogs = Blog.objects.annotate(
+#             search=SearchVector('title', 'content')
+#         ).filter(search=search_query).distinct()
+#     elif tag_search:
+#         blogs = Blog.objects.filter(tags__name__icontains=tag_search).distinct()
+#     else:
+#         blogs = Blog.objects.all()  
+
+#     paginator = Paginator(blogs, 3)  # Paginate the blog list
+#     page_number = request.GET.get('page')
+#     blogs = paginator.get_page(page_number)
+
+#     # Retrieve the full list of blogs for the sidebar
+#     all_blogs = Blog.objects.all()  
+
+#     tags = Tag.objects.all()
+
+#     selected_blog = None
+#     if blog_id:
+#         selected_blog = get_object_or_404(Blog, id=blog_id)
+
+#     return render(request, 'blog.html', {
+#         'blogs': blogs,  # This is for the current page of blogs
+#         'all_blogs': all_blogs,  # This is for the sidebar list
+#         'tags': tags,
+#         'tag_search': tag_search,
+#         'selected_blog': selected_blog,
+#     })

@@ -11,6 +11,65 @@
     <div class="container">
         <aside class="sidebar">
             <form method="GET" action="{% url 'home' %}">
+                <input type="text" name="tag_search" placeholder="Search by tags" value="{{ tag_search }}">
+                <input type="text" name="search" placeholder="Search blogs..." value="{{ search_query }}">
+                <button type="submit">Search</button>
+            </form>
+            <ul class="sidebar-blog-list">
+                {% for blog in blogs %}
+                    <li class="sidebar-blog-item">
+                        <a href="?blog_id={{ blog.id }}&tag_search={{ tag_search }}&search={{ search_query }}&page={{ blogs.number }}">{{ blog.title }}</a>
+                        <p class="sidebar-blog-excerpt">{{ blog.content|truncatewords:20 }}</p>
+                        <p>Tags: 
+                            {% for tag in blog.tags.all %}
+                                <span class="tag">{{ tag.name }}</span>
+                            {% endfor %}
+                        </p>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Pagination Links -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if blogs.has_previous %}
+                        <a href="?page=1&tag_search={{ tag_search }}&search={{ search_query }}&blog_id={{ blog_id }}">&laquo; first</a>
+                        <a href="?page={{ blogs.previous_page_number }}&tag_search={{ tag_search }}&search={{ search_query }}&blog_id={{ blog_id }}">previous</a>
+                    {% endif %}
+                    
+                    <span class="current">
+                        Page {{ blogs.number }} of {{ blogs.paginator.num_pages }}.
+                    </span>
+                    
+                    {% if blogs.has_next %}
+                        <a href="?page={{ blogs.next_page_number }}&tag_search={{ tag_search }}&search={{ search_query }}&blog_id={{ blog_id }}">next</a>
+                        <a href="?page={{ blogs.paginator.num_pages }}&tag_search={{ tag_search }}&search={{ search_query }}&blog_id={{ blog_id }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            {% if selected_blog %}
+                <article>
+                    <h1>{{ selected_blog.title }}</h1>
+                    <p class="meta">Published: {{ selected_blog.created_at|date:"F j, Y, g:i a" }} by {{ selected_blog.author.username }}</p>
+                    <div class="blog-content">
+                        {{ selected_blog.content|linebreaks }}
+                    </div>
+                    <a href="{% url 'share_blog' selected_blog.id %}" class="share-link">Share this post</a>
+
+                    <!-- Rest of the content remains the same -->
+                </article>
+            {% else %}
+                <p>Select a blog to see its details.</p>
+            {% endif %}
+        </main>
+        <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+    </div>
+    <!-- <div class="container">
+        <aside class="sidebar">
+            <form method="GET" action="{% url 'home' %}">
                 <input type="text" name="tag_search" placeholder="Search by tags" value="{{ tag_sear }}">
                 <input type="text" name="search" placeholder="Search blogs..." value="{{ search_query }}">
                 <button type="submit">Search</button>
@@ -29,7 +88,7 @@
                 {% endfor %}
             </ul>
 
-            <!-- Pagination Links -->
+            
             <div class="pagination">
                 <span class="step-links">
                     {% if blogs.has_previous %}
@@ -85,8 +144,8 @@
                 <p>Select a blog to see its details.</p>
             {% endif %}
         </main>
-        <a href="{% url 'logout' %}">Logout</a>
-    </div>
+        <a href="{% url 'logout' %}" class="logout-button">Logout</a>
+    </div> -->
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
