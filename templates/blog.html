@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog List</title>
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <form method="GET" action="{% url 'home' %}">
+                <input type="text" name="tag_search" placeholder="Search by tags" value="{{ tag_search }}">
+                <input type="text" name="search" placeholder="Search blogs..." value="{{ search_query }}">
+                <button type="submit">Search</button>
+            </form>
+            <ul class="sidebar-blog-list">
+                {% for blog in blogs %}
+                    <li class="sidebar-blog-item">
+                        <a href="?blog_id={{ blog.id }}&tag_search={{ tag_search }}&page={{ blogs.number }}">{{ blog.title }}</a>
+                        <p class="sidebar-blog-excerpt">{{ blog.content|truncatewords:20 }}</p>
+                        <p>Tags: 
+                            {% for tag in blog.tags.all %}
+                                <span class="tag">{{ tag.name }}</span>
+                            {% endfor %}
+                        </p>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Pagination Links -->
+            <div class="pagination">
+                <span class="step-links">
+                    {% if blogs.has_previous %}
+                        <a href="?page=1&tag_search={{ tag_search }}&blog_id={{ blog_id }}">&laquo; first</a>
+                        <a href="?page={{ blogs.previous_page_number }}&tag_search={{ tag_search }}&blog_id={{ blog_id }}">previous</a>
+                    {% endif %}
+                    
+                    <span class="current">
+                        Page {{ blogs.number }} of {{ blogs.paginator.num_pages }}.
+                    </span>
+                    
+                    {% if blogs.has_next %}
+                        <a href="?page={{ blogs.next_page_number }}&tag_search={{ tag_search }}&blog_id={{ blog_id }}">next</a>
+                        <a href="?page={{ blogs.paginator.num_pages }}&tag_search={{ tag_search }}&blog_id={{ blog_id }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            {% if selected_blog %}
+                <article>
+                    <h1>{{ selected_blog.title }}</h1>
+                    <p class="meta">Published: {{ selected_blog.created_at|date:"F j, Y, g:i a" }} by {{ selected_blog.author.username }}</p>
+                    <div class="blog-content">
+                        {{ selected_blog.content|linebreaks }}
+                    </div>
+                    <a href="{% url 'share_blog' selected_blog.id %}" class="share-link">Share this post</a>
+
+                    <div class="blog-actions">
+                        <span class="like" onclick="likeBlog({{ selected_blog.id }})">❤️ Like (temporary is not working, it was optional)</span>
+                        <span class="comment" onclick="toggleCommentSection({{ selected_blog.id }})">💬 Comment</span>
+                    </div>
+
+                    <div id="commentSection{{ selected_blog.id }}" class="comment-section" style="display: none;">
+                        <h3>Comments</h3>
+                        <ul id="commentList{{ selected_blog.id }}" class="comment-list">
+                            {% for comment in selected_blog.comments.all %}
+                                <li>
+                                    <p>{{ comment.content }}</p>
+                                    <span>By {{ comment.author.username }} on {{ comment.created_at|date:"F j, Y, g:i a" }}</span>
+                                    <button onclick="likeComment({{ comment.id }})">Like ({{ comment.likes.count }})</button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <form onsubmit="return addComment({{ selected_blog.id }})">
+                            <textarea id="commentContent{{ selected_blog.id }}" required></textarea>
+                            <button type="submit">Add Comment</button>
+                        </form>
+                    </div>
+                </article>
+            {% else %}
+                <p>Select a blog to see its details.</p>
+            {% endif %}
+        </main>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function toggleCommentSection(blogId) {
+            $(`#commentSection${blogId}`).toggle();
+        }
+
+        function addComment(blogId) {
+            const content = $(`#commentContent${blogId}`).val();
+            if (!content) return false;
+
+            $.ajax({
+                url: `/add_comment/${blogId}/`,
+                method: 'POST',
+                data: {
+                    content: content,
+                    csrfmiddlewaretoken: getCookie('csrftoken')
+                },
+                success: function(response) {
+                    $(`#commentList${blogId}`).append(`
+                        <li>
+                            <p>${response.content}</p>
+                            <span>By ${response.author} on ${response.created_at}</span>
+                            <button onclick="likeComment(${response.id})">Like (0)</button>
+                        </li>
+                    `);
+                    $(`#commentContent${blogId}`).val('');
+                }
+            });
+
+            return false;
+        }
+
+        function likeComment(commentId) {
+            $.ajax({
+                url: `/like_comment/${commentId}/`,
+                method: 'POST',
+                data: {
+                    csrfmiddlewaretoken: getCookie('csrftoken')
+                },
+                success: function(response) {
+                    $(`button[onclick="likeComment(${commentId})"]`).text(`Like (${response.likes_count})`);
+                }
+            });
+        }
+
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
