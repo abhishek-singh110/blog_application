@@ -14,7 +14,7 @@ from django.contrib.postgres.search import SearchVector
 
 # this is for required to make the strong password
 password_regex_validator = RegexValidator(
-    regex=r'^(?=.*[A-Z])(?=.*\d)(?=.*[*#$])[A-Za-z\d@$!%*#?&]{8,}$',
+    regex=r'^(?=.*[A-Z])(?=.*\d)(?=.*[*@^%()!#$])[A-Za-z\d@$!%*#?&]{8,}$',
     message="Password must be at least 8 characters long, contain at least one uppercase letter, one special character, and one digit."
 )
 
