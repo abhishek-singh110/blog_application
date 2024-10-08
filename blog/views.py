@@ -70,7 +70,7 @@ def login_view(request):
 # this is showing the blog list and details of the blogs.
 @login_required
 def home(request):
-    tag_search = request.GET.get('tag_search')  # Get the search input from the URL
+    tag_search = request.GET.get('tag_search', '')  # Get the search input from the URL
     search_query = request.GET.get('search')
     blog_id = request.GET.get('blog_id') 
     
